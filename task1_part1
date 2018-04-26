@@ -67,7 +67,7 @@ if __name__ == '__main__':
 		weatherdata['pressure'].append(tmp[3])
 		idx += 1
 		#collect data every 1800 seconds
-		sleep(15)
+		sleep(1800)
 	data = pd.DataFrame(weatherdata)
 	data.to_csv(r'c:\Users\mypc\Desktop\mds\weather_interval_test.csv',index=False)
 	print('Endo of Test')
