@@ -1,0 +1,159 @@
+#importing
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from wordcloud import WordCloud,STOPWORDS
+import missingno as msno
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction import text
+from sklearn.cluster import KMeans
+from nltk.stem.snowball import SnowballStemmer
+from nltk.tokenize import RegexpTokenizer
+#import squarify
+
+%matplotlib inline
+plt.style.use('fivethirtyeight')
+plt.rcParams.update({'font.size':12})
+
+%matplotlib inline
+plt.style.use('fivethirtyeight')
+plt.rcParams.update({'font.size':12})
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+
+#fetching data
+path ='C:/Users/mypc/Desktop/MDS_2/data'
+wine_150k = pd.read_csv('C:/Users/mypc/Desktop/MDS_2/data/winemag-data_first150k.csv',index_col=0)
+wine_130k = pd.read_csv('C:/Users/mypc/Desktop/MDS_2/data/winemag-data-130k-v2.csv',index_col=0)
+wine = pd.concat([wine_150k,wine_130k],axis=0)
+#wine = wine_150k
+print("Number of rows and columns:",wine.shape)
+
+
+wine.head()
+
+#cleaning
+wine[wine.duplicated('description',keep=False)].sort_values('description').head(5)
+
+
+plt.figure(figsize= (16,8))
+plt.title('Word cloud of Description')
+wc = WordCloud(max_words=1000,max_font_size=40,background_color='black', stopwords = STOPWORDS,colormap='Set1')
+wc.generate(' '.join(wine['description']))
+plt.imshow(wc,interpolation="bilinear")
+plt.axis('off');
+
+#list of countries reviews given by
+print('Number of country list in data:',wine['country'].nunique())
+plt.figure(figsize=(14,10))
+cnt = wine['country'].value_counts().to_frame()[0:20]
+#plt.xscale('log')
+sns.barplot(x= cnt['country'], y =cnt.index, data=cnt, palette='ocean',orient='h')
+plt.title('Distribution of Wine Reviews by Top 20 Countrie');
+
+#coutry wise price list
+cnt = wine.groupby(['country',]).mean()['price'].sort_values(ascending=False).to_frame()
+
+plt.figure(figsize=(16,8))
+sns.pointplot(x = cnt['price'] ,y = cnt.index ,color='r',orient='h',markers='o')
+plt.title('Country wise average wine price')
+plt.xlabel('Price')
+plt.ylabel('Country');
+
+#plotting point
+sns.distplot(wine['points'], kde=False);
+
+#plotting price
+sns.distplot(wine['price'], kde=False);
+
+#comnp price & description
+sns.regplot(x='points', y='price', x_estimator=np.mean, data=wine)
+
+vectorizer = TfidfVectorizer(stop_words='english',
+                     binary=False,
+                     max_df=0.95, 
+                     min_df=0.15,
+                     ngram_range = (1,2),use_idf = False, norm = None)
+doc_vectors = vectorizer.fit_transform(wine['description'])
+print(doc_vectors.shape)
+print(vectorizer.get_feature_names())
+
+def comp_description(query, results_number=20):
+        results=[]
+        q_vector = vectorizer.transform([query])
+        print("Comparable Description: ", query)
+        results.append(cosine_similarity(q_vector, doc_vectors.toarray()))
+        f=0
+        elem_list=[]
+        for i in results[:10]:
+            for elem in i[0]:
+                    #print("Review",f, "Similarity: ", elem)
+                    elem_list.append(elem)
+                    f+=1
+            print("The Review Most similar to the Comparable Description is Description #" ,elem_list.index(max(elem_list)))
+            print("Similarity: ", max(elem_list))
+            if sum(elem_list) / len(elem_list)==0.0:
+                print("No similar descriptions")
+            else:
+                print(descriptions['description'].loc[elem_list.index(max(elem_list)):elem_list.index(max(elem_list))])
+
+punc = ['.', ',', '"', "'", '?', '!', ':', ';', '(', ')', '[', ']', '{', '}',"%"]
+stop_words = text.ENGLISH_STOP_WORDS.union(punc)
+desc = variety_df['description'].values
+vectorizer = TfidfVectorizer(stop_words = stop_words)
+X = vectorizer.fit_transform(desc)
+
+stemmer = SnowballStemmer('english')
+tokenizer = RegexpTokenizer(r'[a-zA-Z\']+')
+
+def tokenize(text):
+    return [stemmer.stem(word) for word in tokenizer.tokenize(text.lower())]
+
+
+stemmer = SnowballStemmer('english')
+tokenizer = RegexpTokenizer(r'[a-zA-Z\']+')
+
+def tokenize(text):
+    return [stemmer.stem(word) for word in tokenizer.tokenize(text.lower())]
+
+
+vectorizer3 = TfidfVectorizer(stop_words = stop_words, tokenizer = tokenize, max_features = 1000)
+X3 = vectorizer3.fit_transform(desc)
+words = vectorizer3.get_feature_names()
+
+
+kmeans = KMeans(n_clusters = 15, n_init = 5, n_jobs = -1)
+kmeans.fit(X3)
+
+
+common_words = kmeans.cluster_centers_.argsort()[:,-1:-11:-1]
+for num, centroid in enumerate(common_words):
+    print(str(num) + ' : ' + ', '.join(words[word] for word in centroid))
+
+
+clusters = variety_df.groupby(['cluster', 'variety']).size()
+fig2, ax2 = plt.subplots(figsize = (30, 15))
+sns.heatmap(clusters.unstack(level = 'variety'), ax = ax2, cmap = 'Reds')
+
+ax2.set_xlabel('variety', fontdict = {'weight': 'bold', 'size': 24})
+ax2.set_ylabel('cluster', fontdict = {'weight': 'bold', 'size': 24})
+for label in ax2.get_xticklabels():
+    label.set_size(16)
+    label.set_weight("bold")
+for label in ax2.get_yticklabels():
+    label.set_size(16)
+    label.set_weight("bold")
+
+
+common_words = kmeans.cluster_centers_.argsort()[:,-1:-11:-1]
+for num, centroid in enumerate(common_words):
+    print(str(num) + ' : ' + ', '.join(words[word] for word in centroid))
+
+comp_description("Bright, fresh fruit aromas of cherry, raspberry, and blueberry. Youthfully with lots of sweet fruit on the palate with hints of spice and vanilla.")
+
+
+comp_description('A semi-dry white wine with pear, citrus, and tropical fruit flavors; crisp and refreshing.')
+
+
+comp_description('BLENDED CANADIAN WHISKY ARE EXPERTLY BLENDED AND PATIENTLY AGED')
